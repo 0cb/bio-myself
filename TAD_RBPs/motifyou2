@@ -1,0 +1,47 @@
+#!/bin/bash
+#===========================================================================#
+#
+#   Filename:	    motifyou2
+#   Version:	    1.0							    
+#
+#   Description:    second flavor for identifying potential TADs for RBPs
+#                   - med stringency; window 12
+#                   - built around "TAD_RBPs" project
+#                   + motifme.R
+#                   + motifus2.R
+#                   motifyou2 <input.fa>
+#
+#   Author:	    0cb - Christian Bowman
+#   Creation:	    2019-03-06
+#   Updated:	    2019--
+#
+#===========================================================================#
+#
+#
+
+INPUT="$@"
+
+mkdir -p holds
+
+for i in $INPUT;
+do
+    FILE="$i"
+    STRING=`cat $i`
+    
+    printf "\nstarting $i\n"
+    
+    Rscript $BIO/bin/motifme.R $STRING
+    paste -d' ' A.txt H.txt P.txt | awk '{gsub(/\[\[[0-9]+\]\]/,"");}{gsub(/\[1\] /,"");}1' | awk 'NF' > hold1.txt
+    Rscript $BIO/bin/motifus2.R hold1.txt | awk -v file="$FILE" -v seq="$STRING" '
+        {gsub(/"/, ""); $1=""; print file" "$0" "substr(seq,$2,12)}' >> holds/motif_all.txt
+    rm A.txt H.txt P.txt hold1.txt
+    
+    printf "\nfinished $i\n"
+done
+
+cd ./holds
+
+awk '{gsub(/\s+/, ","); print $0}' motif_all.txt > motif_all-int.csv
+awk -F',' '/true/ {print $0}' motif_all-int.csv > motif_true.csv
+
+exit

@@ -1,0 +1,44 @@
+#!/bin/bash
+#===========================================================================#
+#									    #
+#   Filename:	    faSplitme					    				    
+#   Version:	    1.0							    #
+#
+#   Description:    split fasta files with lots of entries to sep files
+#                   - prevents text wrapping issues
+#                   - built around "TAD_RBPs" project
+#                   faSplitme <input.fa> 
+#
+#   Author:	    0cb - Christian Bowman				    #
+#   Creation:	    2019-03-12
+#									    #
+#===========================================================================#
+#       > Input:    .fasta (or any text-based) to split
+#       > Output:   * holdclose.txt (formated fasta file)
+#                   * ./Splits (dir containing individual entries
+# (vim) :/<pattern>; :%s//\r/gc     replaces last found pattern with 'newline'
+
+INPUT="$@"
+
+#awk 'BEGIN {seq = "";} 
+#        /^>/{if(length(seq)){print seq; seq = "";}} 
+#        {seq = seq "" $1;} 
+#    END {if(length(seq)){print seq; }
+#    }' $INPUT
+
+# (vim) :/<pattern>; :%s//\r/gc     replaces last found pattern with 'newline'
+
+#remove text wrap; '>' as START pattern, seq= entry until next pattern match
+awk '/^>/ && seq{print seq; seq=""}
+                {seq=seq $1}
+            END{if(seq) print seq}' $INPUT > holdclose.txt
+
+#vim command to remove extra fasta details
+vim -c '%s/_HUMAN/\r/g | write | quit' holdclose.txt
+
+#send individuals to sep file in new dir
+mkdir -p ./Splits
+awk '{if(gsub(/>/, "")){name=$0;}else{print > name".fa"}}' holdclose.txt
+mv *.fa ./Splits
+
+exit

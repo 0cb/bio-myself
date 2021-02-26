@@ -1,0 +1,101 @@
+#!/bin/bash
+#===========================================================================#
+#
+#   Filename:	    smaRtMath
+#   Version:	    1.0							    
+#
+#   Description:    ezpz math using R
+#                   - formulae selection using case-based selection
+#                   - vim editing prior to Rscript execution for fluid param 
+#
+#   Author:	    0cb - Christian Bowman
+#   Creation:	    2018-06-19
+#   Updated:	    2018-07-02
+#
+#===========================================================================#
+
+SMART=$BIO/smaRt
+
+#our 'cases'
+RR='Rscript'
+A='readintest.R'
+B='ana_quant.R'
+C='assoctestN.R'
+D='assoctestY.R'
+E='csv_counts.R'
+F='prob_jointmarg.R'
+G='ana_matrix.R'
+H='anova_rep.R'
+J='var_pheno.R'
+K='anova_GxE.R'
+L='ana_regr.R'
+M='anova_genEffect.R'
+N='anova_brHerit.R'
+P='anova_naHerit.R'
+Q='anova_intraCorrln.R'
+
+echo -e "\nsmaRtMath\n..."
+cd $SMART/smaRtMath_formulae; echo $PWD
+
+# User selects command based on input
+# Can use * (wildcard) as a "help" command
+# Loops back to choice via input
+echo "Please select an equation (Press any key for list of options): "
+while read CHOICE; do
+    case "$CHOICE" in
+        1)  echo -e "TEST FOR READ IN\n..."; vim $A; $RR $A
+            break ;;  
+        2)  echo -e "quantitative analysis\n..."; vim $B; $RR $B
+            break ;;
+        3)  echo -e "association test (No correction)\n..."; vim $C; $RR $C
+            break ;;
+        4)  echo -e "association test (Yates correction)\n..."; vim $D; $RR $D
+            break ;;
+        5)  echo -e "csv counting\n..."; vim $E; $RR $E
+            break ;;
+        6)  echo -e "joint and marginal probabilities\n..."; vim $F; $RR $F
+            break ;;
+        7)  echo -e "matrix analysis\n..."; vim $G; $RR $G
+            break ;;
+        8)  echo -e "anova table w/ repeatability"; vim $H; $RR $H
+            break ;;
+        9)  echo -e "variance of avg. phenotype"; vim $J; $RR $J
+            break ;;
+        10) echo -e "GxE interaction"; vim $K; $RR $K
+            break ;;
+        11) echo -e "Regression analysis"; vim $L; $RR $L
+            break ;;
+        12) echo -e "anova table w/ testing gene/epistatic effects"; vim $M; $RR $M
+            break ;;
+        13) echo -e "anova table w/ broad sense heritability & var. comp"; vim $N; $RR $N
+            break ;;
+        14) echo -e "anova table w/ narrow sense heritability & p-off regr coeff"; vim $P; $RR $P
+            break ;;
+        15) echo -e "anova table w/ narrow herit. & intra-class corrln, m0, var. comp"; vim $Q; $RR $Q
+            break ;;
+        
+            # Our 'wildcard' option/ "help"; complete with descriptions
+        *)  echo "Please select a # from formulae available: "
+            echo "1- TESTING...READ IN TEST"
+            echo "2- quantitative analysis (HWE, freqs, chisq, gen effects)"
+            echo "3- association test (2x2 contingency table)"
+            echo "4- assoc. test (2x2 with Yates correction)"
+            echo "5- csv counts (frequency counter)"
+            echo "6- joint and marginal probability (makes new columns)"
+            echo "7- matrix analysis"
+            echo "8- anova table w/ repeatability"
+            echo "9- variance of avg. phenotype"
+            echo "10- GxE interaction test"
+            echo "11- Regression analysis (f-/T-test) for locus-pheno(trait) intrxn"
+            echo "12- anova table w/ test epistatic intrxn (gene-gene) & add/dom effects"
+            echo "13- anova table w/ broad-sense heritability + var. comp"
+            echo "14- anova table w/ narrow-sense heritability + p-off regr coeff" 
+            echo "15- anova table w/ broad-sense herit + m0,intra-class corrln,var. comp,"
+            ;;
+    esac
+done    
+
+
+
+exit
+

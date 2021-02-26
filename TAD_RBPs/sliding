@@ -1,0 +1,22 @@
+#!/bin/awk
+
+{
+for (i=1;i<=NF;i++) {
+  if ($i==1) {
+    for (j=1;j<=4;j++) {
+      ones=0;
+      for (k=(i+j-4);k<=(i+j-1);k++) {
+        if (k>0) {
+          if ($k==1) {
+            ones++;
+          }
+          if (ones>=3) {
+            e[i]=1;
+          }
+        }
+      }
+    }
+  }
+}
+}
+END{for (i in e) count++;print count}

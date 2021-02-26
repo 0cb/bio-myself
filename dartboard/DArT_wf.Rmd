@@ -1,0 +1,249 @@
+---
+title: "DArT workflow"
+author: "Christian Bowman"
+output: pdf_document
+---
+
+## Dependencies & Information
+R 3.6.3 \newline
+Rstudio 1.3.1056 \newline
+Ubuntu 20.04.2 LTS \newline
+dartR_1.8.3 \newline
+StAMPP_1.6.1 \newline
+
+```{r setup, echo=FALSE}
+knitr::opts_knit$set(root.dir = "/home/cb/workspace")
+pacman::p_load(dartR, StAMPP)
+source("gl.filter.PIC.r")
+source("gl2structure_localfix.r")
+
+```
+
+# 2017 analysis
+
+## Working variables - 2017 data
+```{r vars}
+setwd("./bermuda/2017-12-06")
+
+nfile <- "Report_DBe17-3222_SNP_2.csv"
+sfile <- "Report_DBe17-SilicoDArT_1.csv"
+mdata <- "Meta_DBe17-3222.csv"
+
+############################################################################
+## Setting light switch for easy swap between SNP(0) & Silico(1) analysis ##
+flick <- 0
+############################################################################
+
+indivs <- c("B1","B99","B106","B114","B17","B27","B91","B2","B100","B116","B9","B63","B108","B117","B19","B30","B38","B65","B4","B101","B109","B119","B11","B20","B31","B39","B56","B66","B94","B5","B102","B110","B120","B12","B21","B40","B50","B95","B6","B121","B13","B42","B96","B7","B104","B112","B14","B43","B51","B60","B97","B8","B16","B44","B52","B61","B98","B140","B147","B160","B133","B141","B148","B162","B125","B134","B142","B149","B135","B151","B127","B136","B144","B152","B128","B137","B145","B156","B129","B138","B146","B158","B131","B139","B159")
+
+if (flick == 0) {
+  cat("SNP data detected")
+  phold <- nfile
+  gl <- gl.read.dart(filename = nfile, ind.metafile = mdata)
+  gl.i <- gl <- gl.keep.ind(gl, ind.list=indivs)
+  gl.0 <- gl.recalc.metrics(gl.i)
+  
+} else if (flick == 1) {
+  cat("Silico data detected")
+  phold <- sfile
+  gl <- gl.read.silicodart(filename = sfile, ind.metafile = mdata)
+  gl.i <- gl <- gl.keep.ind(gl, ind.list=indivs)
+  gl.0 <- gl.recalc.metrics(gl.i)  
+
+} else {
+  cat("Error: data type not specified (0 = SNP, 1 = Silico)")
+
+}
+
+```
+
+## Reporting & Filtering - 2017 data
+
+2017 SNP : Pre-report
+```{r pre-report}
+gl.report.reproducibility(gl.0)
+gl.report.monomorphs(gl.0)
+gl.report.callrate(gl.0)
+gl.report.secondaries(gl.0)
+
+```
+
+2017 SNP : Filter
+\begin{itemize}
+  \item (-) reproducibility < 1
+  \item (-) monomorphic markers
+  \item (-) call rate < 95%
+  \item (-) secondaries
+\end{itemize}
+
+2017 silico : Filter
+\begin{itemize}
+  \item (-) reproducibility < 1
+  \item (-) monomorphic markers
+  \item (-) call rate < 95%
+  \item (-) PIC < 0.4
+\end{itemize}
+
+```{r filter}
+if (flick == 0) {
+  ##SNP
+  glf.1 <- gl.filter.reproducibility(gl.0, threshold = 1)    #quality per locus; .repavg is deprecated 
+  glf.2 <- gl.filter.monomorphs(glf.1)    #remove monomorphs and loci w/ NA
+  glf.3 <- gl.filter.callrate(glf.2, method = "loc", threshold = 0.95)    #missing data per locus
+  glf.4 <- gl.filter.secondaries(glf.3)    #remove dupes per seq tag  
+  
+} else if (flick == 1) {
+  ##Silico
+  glf.1 <- gl.filter.reproducibility(gl.0, threshold = 1)    #quality per locus
+  glf.2 <- gl.filter.monomorphs(glf.1)    #remove monomorphs and loci w/ NA
+  glf.3 <- gl.filter.callrate(glf.2, method = "loc", threshold = 0.95)    #missing data per locus
+  glf.4 <- gl.filter.PIC(glf.3, threshold = 0.4)    #polymorphic information content
+  
+}
+
+rm(glf.1, glf.2, glf.3)
+```
+
+2017 SNP : Post-report
+```{r post-report}
+if (flick == 0) {
+  ##SNP
+  gl.report.reproducibility(glf.4)
+  gl.report.monomorphs(glf.4)
+  gl.report.callrate(glf.4)
+  gl.report.secondaries(glf.4)
+    
+} else if (flick == 1) {
+  ##Silico
+  gl.report.reproducibility(glf.4)
+  gl.report.monomorphs(glf.4)
+  gl.report.callrate(glf.4)
+  #gl.report.(glf.4)
+  
+}
+
+```
+
+## Measuring Genetic Distance - 2017 data
+
+```{r Genetic distance}
+##F statistic; Bootstrap=1000
+pwfst <- stamppFst(glf.4, nboots=1000, percent=95, nclusters=2)
+write.csv(pwfst$Fsts,file=paste0("FST_",phold))
+write.csv(pwfst$Pvalues,file=paste0("FSTpval_",phold))
+
+##G statistic (Neis genetic distance)
+pwGst <- stamppNeisD(glf.4)
+round(pwGst,3)
+write.csv(pwGst,file=paste0("GST_",phold))
+
+##G statistic for indivs (Nei genetic distance for individuals)
+glind <- glf.4
+pop(glind) <- indNames(glind)
+pwGst.i <- stamppNeisD(glind)
+round(pwGst.i,3)
+write.csv(pwGst.i,file=paste0("GSTindiv_",phold))
+
+```
+Couldn't generate Fst for individuals, I think this method is only for populations.
+
+Files were exported as csv files.
+
+## PCoA analysis - 2017 data
+
+Building PCoA with white background
+```{r PCoA}
+#Need to clean up the PCoA graph (visuals)
+#glind<-glf.4
+pc <- gl.pcoa(glind, nfactors=12)    #explanation and results for PCoA
+y <- gl.pcoa.plot(pc, glind, labels="ind", xaxis=1, yaxis=2)
+y + xlim(-25, 25)+ylim(-25, 25)+coord_fixed(ratio = 1)+theme_bw()+geom_point(aes(shape=pop))
+#geom_point works only for 6 shapes.
+
+#Scree plot with eigenvalues to determine contribution of axes in explaining variation
+gl.pcoa.scree(pc)
+
+
+```
+Output:
+Performing a PCoA, individuals as entities, SNP loci as attributes
+Ordination yielded 15 informative dimensions from 84 original dimensions
+  PCoA Axis 1 explains 22.7 % of the total variance
+  PCoA Axis 1 and 2 combined explain 35.6 % of the total variance
+  PCoA Axis 1-3 combined explain 41.7 % of the total variance
+
+## STRUCTURE Export
+```{r STRUCTURE}
+# does STRUCTURE only handle SNP markers or can it handle Silico?
+gl2structure_localfix(glf.4)
+
+```
+
+## PHYLIP Export
+```{r PHYLIP}
+### Calculate Nei's distances between individuals/pops
+#how does this compare with the final lines of ##Measuring Genetic distance ?
+aa.D.ind <- stamppNeisD(glind, pop = FALSE) # Nei's 1972 distance between indivs
+stamppPhylip(aa.D.ind, file="bermudasilico.indiv_Neis_distance.txt") # export matrix - for SplitsTree
+aa.D.pop <- stamppNeisD(aa.genlight, pop = TRUE) # Nei's 1972 distance between pops
+stamppPhylip(aa.D.pop, file="aa.pops_Neis_distance.phy.dst") # export matrix - for SplitsTree 
+
+nLoc(glind)
+
+```
+
+## Outputs - 2017 data
+###\underline{SNP}
+Raw: 
+\begin{itemize}
+  \item 85 individuals
+  \item 192504 (178730 in paper) SNPS
+  \item (40.99%) missing data
+\end{itemize}
+
+Filtered - SNP:
+\begin{itemize}
+  \item 85 individuals
+  \item 7023 (paper match) SNPs
+  \item (2.04%) missing data
+\end{itemize}
+
+###\underline{silico}
+Raw:
+\begin{itemize}
+  \item 85 individuals
+  \item 376269 (285570) SNPS
+  \item (1.84%) missing data
+\end{itemize}
+
+Filtered - Silico:
+\begin{itemize}
+  \item 85 individuals
+  \item 27512 (30505) SNPs
+  \item (3.17%) missing data
+\end{itemize}
+
+# 2018 analysis
+
+# Notes - 2018 data
+
+\underline{Metadata}
+\begin{itemize}
+  \item created "Meta_DBe18-3712.csv"
+  \item "Genotype" -> "id"
+  \item "Species" -> "pop"
+  \item "Cynodon <species>" -> "C.<species>"
+  \item "Comments" -> "epop" (expected population)
+  \item "\textbackslash xD7" -> "x" (\textbackslash xD7 is meant to be a multiplication sign)
+  \item "Comments: none" -> "N/A"; not sure how missing values are interpreted in the metadata
+  \item [FIXED] ID:"FA8-1 " -> ID:"FA8-1"; fixed in raw and meta
+\end{itemize}
+
+\underline{Silico}
+\begin{itemize}
+  \item must use read.silicodart
+  \item removing secondaries is not yet implemented; must use PIC filter <0.4
+  \item created "gl.filter.PIC" using "gl.filter.reproducibility" as the base; filter based off of PIC t=0.4
+  \item 
+  
+

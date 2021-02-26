@@ -1,0 +1,26 @@
+#!/bin/bash
+#===========================================================================#
+#									    #
+#   Filename:	    joinme					    				    
+#   Version:	    1.0							    #
+#
+#   Description:    join 2 files based on matching patterns(columns)
+#   		    - merge matching rows
+#   		    joinme <input1> <input2>
+#
+#   Author:	    0cb - Christian Bowman				    #
+#   Creation:	    2019-01-23
+#									    #
+#===========================================================================#
+# awk 'FNR==NR{a[$4,$5]=$0;next}{if(b=a[$4,$5]){print b}}' file1 file2
+
+INPUT="$@" #should be specifying file1 and file2 in your input
+
+# compare line# (FNR) to total# (NR)
+#   - set file"a" field<n> to whole line
+#   - if file"b" field<n> matches with file"a" field1
+#   - output: file"b" field2 & file"a" full line
+
+awk -F '\t' 'FNR==NR{a[$3]=$0;next}{if(b=a[$1]){print $2"\t"a[$1]}}' $INPUT > joinme_out.tsv
+
+exit

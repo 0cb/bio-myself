@@ -1,0 +1,29 @@
+#!/bin/bash
+# tickle stuff
+
+awk 'BEGIN{FS=","; OFS=","}
+    {
+        {id=$1
+        chrlen=$2
+        transcript=$3
+        gene=$4;}
+
+        if($6 ~ /CC$/) # && $6 ~/AA[A-Z][A-Z][A-Z]$/)
+            {
+            print $1, $2, $3, $4, $5, $6 > "tickleFme.csv"
+            }
+    }' ih8peanutF.csv
+
+awk 'BEGIN{FS=","; OFS=","}
+    {
+        {id=$1
+        chrlen=$2
+        transcript=$3
+        gene=$4;}
+
+        if($6 ~ /CC$/) # && $6 ~/AA[A-Z][A-Z][A-Z]$/)
+            {
+            print $1, $2, $3, $4, $5, $6 > "tickleRme.csv"
+            }
+    }' ih8peanutR.csv
+exit

@@ -1,0 +1,54 @@
+#!/bin/bash
+#===========================================================================#
+#									    #
+#   Filename:	    faJoinme					    				    
+#   Version:	    1.0							    #
+#
+#   Description:    "fasta" joiner; sliding window function to append char
+#                   to og string
+#                   - built around "TAD_RBPs" project
+#
+#   Author:	    0cb - Christian Bowman				    #
+#   Creation:	    2019-03-19
+#									    #
+#===========================================================================#
+
+
+INPUT="$@"
+
+#create dir for output files
+mkdir -p ./merging
+
+for i in $INPUT;
+do
+#    awk -v file="$FILE" -F',' '{print ">"FILENAME"_potTAD\n" $17}'  > 
+    #awk -v file=$i -F',' '/^sp/{print $17 > "./merging/tad_"NR".txt"; next;} {print}' $i   
+
+    #with \s (space) as the field.sep, print 17th field (supposed to be our window sequence)
+    awk -v file=$i -F',' '/^sp/{print $17}' $i > ./merging/tad_$i.txt
+
+    cd ./merging
+
+    TEST=`cat tad_$i.txt`
+
+    #loop through each line and print last char starting at 2ND line
+    while read -r line;
+    do
+        
+        awk -v line=$line '{print substr($0, length($0), 1)}' > hold.txt
+
+    done <<< "$TEST"
+    
+    #print first line and append last char ea. line (found @hold.txt)
+    #this gives us a hyper-convulted 'moving window' of sorts
+    FIRST=`awk 'NR==1' tad_$i.txt > first.txt`
+    SECOND=`awk '{printf "%s",$0} END {print ""}' hold.txt > second.txt`
+
+    paste -d'\0' first.txt second.txt > tad_$i.txt
+    rm first.txt second.txt hold.txt
+    cd ..
+
+done
+
+
+exit 

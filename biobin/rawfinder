@@ -1,0 +1,35 @@
+#!/bin/bash
+#===========================================================================#
+#
+#   Filename:	    rawfinder
+#   Version:	    1.0							    
+#
+#   Description:    but not a rawgiver
+#                   - recursively locate/ move files to dir
+#                   - built around .seq/.ab1 files
+#                   - no need for wildcards in inputID
+#                   rawfinder <inputID>
+#
+#   Author:	    0cb - Christian Bowman
+#   Creation:	    2018-07-02
+#   Updated:	    2019--
+#
+#===========================================================================#
+
+
+echo -n "Please list raws to find: "
+read ANSWER
+
+for i in $ANSWER;
+do
+    echo "Finding $i"
+    mkdir -p $BIO/Raws_$i
+    #find all files with inputID in name, copy to new dir
+    find . -name "*$i*" -type f -exec cp -vf {} $BIO/Raws_$i \;
+    echo ""
+    echo "All raws of $i have been found from"
+    echo $PWD
+    echo ""
+done
+
+exit

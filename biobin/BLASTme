@@ -1,0 +1,115 @@
+#!/bin/bash
+#===========================================================================#
+#									    #
+#   Filename:	    BLASTme					    				    
+#   Version:	    2.0							    #
+#
+#   Description:    for when you actually get results
+#   		    - for use with custom (local) reference genomes
+#   		    - run command within dir containing data
+#   		    - can be used as a general aligner in cases where
+#   		    you're a poor and can't align to a plasmid map
+#                   + ncbi-blast+
+#
+#   Author:	    0cb - Christian Bowman				    #
+#   Creation:	    2018-08-04
+#									    #
+#===========================================================================#
+# $RANDOM is used throughout as a means of preventing data overwrite
+
+
+countseq=$(ls -l *.seq 2>/dev/null | wc -l)          # ls > wc (line count)
+#counttxt=$(ls -l *.tview.txt 2>/dev/null | wc -l)
+#countfID=$(grep -El '>' *.seq) #will not give us the files, just the items
+BLAST=$BIO/BLASTme
+
+echo "BLASTing"
+echo "..."
+echo $countseq; echo $counttxt #; echo $countfID #; exit
+
+
+# Check if current directory contains .seq or .tview.txt data; basically iPCR or TM
+# Grab viable sequence(s) from input files for use in BLAST
+# The standard .seq file has 1 line of continuous sequence, but there's multiple files 
+# The standard .tview.txt file has multiple sequences for alignment, with line3 being the final product, but usually 1 file
+if (( countseq != 0 ))      #[ -f *.seq ]
+then
+        echo "Sequencing data in .seq format"
+        #vim -c ":args" *.seq -c ":argdo %s/\n// | update"
+    #for f in $countfID;
+    #do
+#        if (( countfID != 0 ))
+ #       then
+    #        sed -i '1d' $f | awk '{printf("%s",$0)}'
+  #      fi
+    #done
+        awk 'FNR==1 {print ">" FILENAME; print $0}' *.seq > $(date +%y_%m_%d).$RANDOM.PCR.BLASTme.txt
+elif (( counttxt != 0 ))       #[ -f *.tview.txt ]
+then
+        echo "Sequencing data from NGS"
+        awk 'FNR==3 {print ">" FILENAME; print $0}' *.tview.txt > $(date +%y_%m_%d).$RANDOM.TM.BLASTme.txt
+else
+        echo "No data detected. Please check input data."
+        exit
+fi
+
+#exit
+
+echo "Copying *BLASTme.txt to $BLAST"
+cp *BLASTme.txt "$BLAST"; cd "$BLAST"; ls *.txt
+echo ""
+echo "Would you like to proceed with BLASTing?"
+echo "Input [y/n]: "
+read ANSWER
+
+
+# BLAST the grabbed sequence(s) to chosen refGenome
+if [ "$ANSWER" = "y" ]
+then
+        echo ""
+        echo "Sequences grabbed. Choose BLAST parameters from the following:"
+        echo "(updated- 08.22.18):"
+        echo "AaegL5"
+        echo "DmelR6"
+        echo "v1018"
+        echo "v1024a,b,c"
+        echo "Dsuzv2"
+        echo "pJOP-1"
+        echo "002L"
+        echo "Hu38"
+        echo " "
+        read CHOICE
+else
+        echo "BLASTing cancelled. Cleaning up."
+        echo ""
+        rm *BLASTme.txt
+        cd -; rm *BLASTme.txt
+        exit
+fi
+
+# cannot run if any BLASTme folders present- need to fix
+for i in $CHOICE;
+do
+    echo "BLASTing to $i"
+    blastn -query *BLASTme.txt -db BLASTdb/$i -out BLASTresultsA.$i.$RANDOM.txt -dust no -parse_deflines #-word_size 11
+    blastn -query *BLASTme.txt -db BLASTdb/$i -out BLASTresultsB.$i.$RANDOM.txt -outfmt 7 #-word_size 11
+
+
+# cd into iPCR/* > move results into * > move results into own folder > cd back to /BLASTme
+# NEED 2 moves because we're working with $RANDOM and the file name is accounted for by $_
+    cd -; mv $BLAST/BLASTresults*.$i*.txt .
+    mkdir $(date +%y_%m_%d).BLAST_$i.$RANDOM
+    mv BLASTresults*.$i*.txt $_
+    cp *BLASTme.txt $_
+    echo "$i completed."
+    cd -
+done
+
+#Cleanup time; cd into /BLASTme
+    echo "A *BLASTme.txt copy is saved in your corresponding results directory. Cleaning up."
+    echo ""
+    cd "$BLAST"; rm *BLASTme.txt
+
+
+exit
+

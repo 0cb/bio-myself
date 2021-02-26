@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cd ~/Bioinf0cb/MiSA/Data
+awk '{if(gsub(/>/, "")){name=$0;}else{print > name".txt"}}' *.fasta
+mkdir ~/Bioinf0cb/MiSA/fastaSplits.$(date +%y_%m_%d).$RANDOM
+cd $_; mv ~/Bioinf0cb/MiSA/Data/*.txt . #; mv ~/Bioinf0cb/MiSA/*fasta.* .
+
+echo $PWD
+
+exit

@@ -1,0 +1,98 @@
+#!/bin/bash
+# MiSAvv - Multi Sequence Alignment for Verbose Visualization
+# Purpose: Take input file containing multiple fasta entries and align to target sequence
+# > Provides detailed analysis for visualization purposes
+# > Usage: MiSAvv
+#
+#
+# Author: 0cb (02.23.18)    Christian Bowman
+#
+# Reference code using 'awk' (takes multiple files in directory and makes a single file
+# > awk 'FNR==1 {print ">" FILENAME; print $0}' *.seq > $(date +%y_%m_%d).$RANDOM.BLASTm.txt
+# (Opposite of what we're doing here)
+
+MISA=$BIO/MiSA
+
+
+echo "MiSAvv - Multi Sequence Alignment for Verbose Visualization"
+echo ""
+echo "Please ensure that your input is in Unix format."
+echo "[dos] stands for a windows format. To change, open file with vim and enter"
+echo ":set ff=unix    save (:x) then repeat. Only one time will not work."
+echo ""
+
+echo "Are you ready to continue? [y/n]: "
+read ANSWER
+
+if [ "$ANSWER" = "y" ]
+then
+        echo ""
+        echo "Running MiSAvv"
+        echo "..."
+        cd $MISA
+else
+        echo ""
+        echo "Cancelling MiSAvv"
+        echo "..."
+        exit
+fi
+
+
+#--------------------------------------------------------------
+# Following bwa/samtools lines ripped from Stern's TagMap :^)
+#--------------------------------------------------------------
+
+mapping_genome=$1
+
+
+# Use bwa to index reference genome/sequence
+
+if [ -e ${mapping_genome}.sa ]
+then 
+        echo "Reference already set."
+else
+        echo "Setting reference."
+        bwa index $mapping_genome
+        echo "Reference set."
+fi
+
+# Uses ">" as the condition for "fasta" data and copies all subsequent lines until next ">"
+# Prints ">..." to new file and names said file based on the fasta identifier
+# We make a new directory containing all split fasta files rather than only having a tarball
+
+cd $MISA/Data
+awk '{if(gsub(/>/, "")){name=$0;}else{print > name".txt"}}' *.fasta
+mkdir $MISA/fastaSplits.$(date +%y_%m_%d).$RANDOM
+cd $_; mv $MISA/Data/*.txt" .; mv "$MISA/*fasta.* .
+
+#cd $_ #; tar -cvzf fastaSplit.tar.gz --remove-files *.txt
+
+echo $PWD
+# This is used rather than 'tar -zxvf fastaSplit.tar.gz' to give resemblance to Stern's coding
+#gunzip < fastaSplit.tar.gz | tar -xv
+
+#SPLIT=$_
+
+for filename in *.txt; do
+
+        # Map reads to genome, convert to bam, sort
+        bwa mem $mapping_genome ${filename} | samtools view -b /dev/stdin | samtools sort /dev/stdin > ${filename}.sorted.bam
+
+        # Make bai
+        samtools index ${filename}.sorted.bam
+        
+        # Generate tview for visual alignment
+        samtools tview -d T ${filename}.sorted.bam > ${filename}.tview.txt
+
+done
+
+
+#awk '{if(gsub(/>/, "")){name=$0;}else{print > name".txt"}}' *.fa
+#cd -; mkdir ./fastaSplits.$(date +%y_%m_%d).$RANDOM
+#cd $_; mv ~/Bioinf0cb/MiSA/Data/*.txt .
+#mv *.tview.txt ~/Bioinf0cb/MiSA/Data
+
+
+
+exit
+

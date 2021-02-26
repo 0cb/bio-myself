@@ -1,0 +1,61 @@
+#!/bin/bash
+#circme - pull start and end nt on sequence list to determine relative %
+#
+# - WebLogo(3)
+# - pull first/ last 2 nt
+#   > hypoth is AG ; GT
+# - odd lines are fasta names
+# - even lines are sequences
+# ? push to table:
+#   _ circID (print up to first | ) FS="|"
+#   _ name ; use " print name" - gives full >fastaID
+#   _ length ; use "print length"
+#   _ 1st 2 ; done
+#   _ last 2 ; done
+#
+# Author: 0cb (10.03.18)    Christian Bowman
+
+#SET=`awk '{print ">"id, transcript, gene, length"bp","\n"substr($0,1,6), substr($0,length($0)-5,length($0))}'`
+
+awk 'BEGIN{FS="|"; OFS=","}
+        {
+        if(gsub(/>/, ""))
+            {id=$1
+             chrlen=$2
+             transcript=$3
+             gene=$4;}
+        else
+            {
+            if (length > 30)
+                # 'substr' portion is for grabbing first 6 & last 6 characters
+                if (substr(chrlen,length(chrlen),1) == "+") #if last character is + 
+                    {
+                    print id, transcript, gene, length, substr($0,1,6), substr($0,length($0)-5,length($0)) > "holdfwd.csv"
+                    }
+                else
+                    {
+                    print id, transcript, gene, length, substr($0,1,6), substr($0,length($0)-5,length($0)) > "holdrev.csv"
+                    }
+            else    
+                if (substr(chrlen,length(chrlen),1) == "+") #if last character is + ; "\n" for newline
+                    {
+                    print ">"id, transcript, gene, length, substr($0,1,6), substr($0,length($0)-5,length($0)) > "holdfwd30.csv"
+                    }
+                else
+                    {
+                    print ">"id, transcript, gene, length, substr($0,1,6), substr($0,length($0)-5,length($0)) > "holdrev30.csv"
+                    }
+            }
+        }' *.fa
+
+fwd_6='holdfwd.csv'
+rev_6='holdrev.csv'
+fwd_30='holdfwd30.csv'
+rev_30='holdrev30.csv'
+
+echo "completed"
+
+
+
+    
+exit

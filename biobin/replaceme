@@ -1,0 +1,7 @@
+#!/bin/sh
+awk -v value="$1" -v column="$2" '
+  $column == value {++removed; next}
+  1 {print}
+  END {print removed " lines removed" >"/dev/stderr"}
+' <DEG_mm10j.txt >File.txt.tmp &&
+mv File.txt.tmp File.txt

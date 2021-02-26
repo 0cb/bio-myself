@@ -1,0 +1,53 @@
+#!/bin/bash
+#===========================================================================#
+#
+#   Filename:	    motifyou3
+#   Version:	    1.0							    
+#
+#   Description:    third flavor for identifying potential TADs for RBPs
+#                   - high stringency; window of 30
+#                   - built around "TAD_RBPs" project
+#                   + motifme3.R
+#                   + motifus3.R
+#                   motifyou3 <input.fa>
+#
+#   Author:	    0cb - Christian Bowman
+#   Creation:	    2019-03-18
+#   Updated:	    2019--
+#
+#===========================================================================#
+
+INPUT="$@"
+JUMP=~/Lab_Murn/TAD_RBPs/Splits
+#JUMP=~/Lab_Murn/TAD_RBPs/Full_proteome/Splits
+
+mkdir -p holds
+
+for i in $INPUT;
+do
+    FILE="$i"
+    STRING=`cat $i`
+   
+    printf "\nstarting $i\n"
+    
+    Rscript $BIO/bin/motifme3.R $STRING
+    paste -d' ' A.txt H.txt P.txt | awk '{gsub(/\[\[[0-9]+\]\]/,"");}{gsub(/\[1\] /,"");}1' | awk 'NF' > hold1.txt
+    Rscript $BIO/bin/motifus3.R hold1.txt | awk -v file="$FILE" -v seq="$STRING" '
+        {gsub(/"/, ""); $1=""; print file" "$0" "substr(seq,$2,30)}' >> holds/motif_all.txt
+    rm A.txt H.txt P.txt hold1.txt
+    
+    cd ./holds
+    awk '{gsub(/\s+/, ","); print $0}' motif_all.txt > motif_all-int.csv
+    awk -F',' '/true/ {print $0}' motif_all-int.csv > motif_true.csv
+
+    mv motif_true.csv $i.csv; rm motif*
+
+    printf "\nfinished $i\n"
+
+    cd $JUMP
+done
+
+cd ./holds
+find . -size 0 -delete
+
+exit
